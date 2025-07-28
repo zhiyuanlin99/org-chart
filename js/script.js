@@ -1,9 +1,9 @@
 window.addEventListener('DOMContentLoaded', init);
 
-// ❗️把下面这个替换成你自己部署后复制的“Web App URL（以 /exec 结尾）”
-const API_URL = 'https://script.google.com/macros/s/AKfycbzAmz6_lpqzG-tNSGZUZphlO3EPqQCLfktm2lN4IOIaJIsCLQB-kzEeh0PBlVkG95C9ug/exec';
+const API_URL = 'https://script.google.com/macros/s/AKfycbyfaENmtNI-DuxJWMJr4fojHJweckLJuJAJFU20tTvR2gRDU2xk8KCnaD6hq3YjqKqGrA/exec';
 
-let currentEditing = ''; // 存旧名字
+
+let currentEditing = ''; // 记录旧名字
 
 function init() {
   fetch(API_URL, { method: 'GET' })
@@ -13,23 +13,20 @@ function init() {
     })
     .then(data => renderByHierarchy(data))
     .catch(err => {
-      console.error('加载数据失败：', err);
-      alert('加载数据失败，请检查网络或控制台');
+      console.error("加载数据失败：", err);
+      alert("加载数据失败，请检查网络或控制台");
     });
 }
 
 function getRank(role) {
   const r = (role || '').toLowerCase();
-  if (r.includes('founder') || r.includes('ceo'))    return 1;
-  if (r.includes('chief'))                           return 2;
-  if (r.includes('director') || r.includes('head'))  return 3;
-  if (r.includes('manager'))                         return 4;
-  if (r.includes('lead'))                            return 5;
-  if (r.includes('developer') 
-   || r.includes('analyst') 
-   || r.includes('designer') 
-   || r.includes('writer'))                         return 6;
-  if (r.includes('intern') || r.includes('assistant')) return 7;
+  if (r.includes("founder") || r.includes("ceo")) return 1;
+  if (r.includes("chief")) return 2;
+  if (r.includes("director") || r.includes("head")) return 3;
+  if (r.includes("manager")) return 4;
+  if (r.includes("lead")) return 5;
+  if (r.includes("developer") || r.includes("analyst") || r.includes("designer") || r.includes("writer")) return 6;
+  if (r.includes("intern") || r.includes("assistant")) return 7;
   return 99;
 }
 
@@ -41,26 +38,21 @@ function renderByHierarchy(data) {
   const tree = document.getElementById('tree');
   tree.innerHTML = '';
 
-  // 按角色优先级排序
   data.sort((a, b) => getRank(a.Role) - getRank(b.Role));
 
-  // 按团队分组
   const grouped = {};
   data.forEach(p => {
     (grouped[p.Team] = grouped[p.Team] || []).push(p);
   });
 
-  // 渲染每个分组
   Object.entries(grouped).forEach(([teamName, members]) => {
     const groupDiv = document.createElement('div');
     groupDiv.className = 'team-group';
 
-    // leader / others
     const leaders = members.filter(p => isLeader(p.Role));
     const others  = members.filter(p => !isLeader(p.Role));
     const leader  = leaders.length ? leaders[0] : others.shift();
 
-    // leader 卡片
     const leadCard = document.createElement('div');
     leadCard.className = 'card team-lead';
     leadCard.setAttribute('data-rank', getRank(leader.Role));
@@ -70,7 +62,6 @@ function renderByHierarchy(data) {
     leadCard.onclick = () => toggleTeam(teamName);
     groupDiv.appendChild(leadCard);
 
-    // 隐藏/显示的成员列表
     const memsDiv = document.createElement('div');
     memsDiv.className = 'team-members';
     memsDiv.id = `team-${teamName}`;
@@ -82,10 +73,7 @@ function renderByHierarchy(data) {
       m.setAttribute('data-rank', getRank(p.Role));
       m.innerHTML = `
         ${p.Name}<br><small>${p.Role}</small>
-        <span class="edit"
-              onclick="openEdit(event, '${p.Name}', '${p.Role}', '${p.Status}', '${p.Team}')">
-          ✏️
-        </span>
+        <span class="edit" onclick="openEdit(event,'${p.Name}','${p.Role}','${p.Status}','${p.Team}')">✏️</span>
       `;
       memsDiv.appendChild(m);
     });
@@ -97,9 +85,7 @@ function renderByHierarchy(data) {
 
 function toggleTeam(teamName) {
   const d = document.getElementById(`team-${teamName}`);
-  if (d) {
-    d.style.display = d.style.display === 'none' ? 'flex' : 'none';
-  }
+  if (d) d.style.display = d.style.display === 'none' ? 'flex' : 'none';
 }
 
 function openEdit(e, name, role, status, team) {
@@ -122,7 +108,7 @@ function saveEdit() {
   const newStatus = document.getElementById('editStatus').value;
   const newTeam   = document.getElementById('editTeam').value;
 
-  // 用 URLSearchParams 发表单，不会走 OPTIONS 预检
+  // 用 URLSearchParams 发起 simple POST，不触发 CORS 预检
   fetch(API_URL, {
     method: 'POST',
     body: new URLSearchParams({
@@ -140,11 +126,11 @@ function saveEdit() {
   .then(json => {
     alert(`操作成功：${json.action}`);
     closeEdit();
-    init();  // 重新加载最新数据
+    init();  // 重新拉数据并渲染
   })
   .catch(err => {
-    console.error('保存失败：', err);
-    alert('保存失败，请检查控制台错误');
+    console.error("保存失败：", err);
+    alert("保存失败，请检查控制台错误");
   });
 }
 
