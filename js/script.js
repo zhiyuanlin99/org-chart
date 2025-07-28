@@ -1,6 +1,6 @@
 window.addEventListener('DOMContentLoaded', init);
 
-const API_URL = 'https://script.google.com/macros/s/AKfycbyfaENmtNI-DuxJWMJr4fojHJweckLJuJAJFU20tTvR2gRDU2xk8KCnaD6hq3YjqKqGrA/exec';
+const API_URL = 'https://script.google.com/macros/s/AKfycbxOR4DB9BsaeUfufbyUhRUzU9rd1SAf7lYu_ESQWp-bb8kII-WJHRrQd5zaxxZnKSzEDA/exec';
 
 
 let currentEditing = ''; // 记录旧名字
