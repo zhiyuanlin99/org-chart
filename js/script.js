@@ -1,6 +1,7 @@
 window.addEventListener('DOMContentLoaded', init);
 
 const API_URL = 'https://script.google.com/macros/s/AKfycbxLHTcjQZ3ovUsl5VDo_E1zF7KfxwZiy_QDLRgPVQRrylBXkHLZ5etvV6W_lf3Sy0DGaA/exec';
+
 let currentEditing = ''; // 记录旧名字
 
 function init() {
