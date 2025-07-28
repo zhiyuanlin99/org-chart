@@ -1,17 +1,25 @@
 window.addEventListener('DOMContentLoaded', init);
 
-let currentEditing = ''; // 用于存储旧名字
+const API_URL = 'https://script.google.com/macros/s/AKfycbxLHTcjQZ3ovUsl5VDo_E1zF7KfxwZiy_QDLRgPVQRrylBXkHLZ5etvV6W_lf3Sy0DGaA/exec';
+let currentEditing = ''; // 记录旧名字
 
 function init() {
-  // 用 opensheet.elk.sh 来获取 Sheet 数据，避免 CORS 问题
-  fetch("https://opensheet.elk.sh/1jafM-dFLb4T-wb7nAxspx6befDCdTgMXdOwFBzE1LXA/Sheet1")
-    .then(response => response.json())
-    .then(data => renderByHierarchy(data))
-    .catch(err => console.error("Error loading data:", err));
+  fetch(API_URL, { method: 'GET' })
+    .then(res => {
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      return res.json();
+    })
+    .then(data => {
+      renderByHierarchy(data);
+    })
+    .catch(err => {
+      console.error("加载数据失败：", err);
+      alert("加载数据失败，请检查网络或控制台");
+    });
 }
 
 function getRank(role) {
-  const r = role.toLowerCase();
+  const r = (role || '').toLowerCase();
   if (r.includes("founder") || r.includes("ceo")) return 1;
   if (r.includes("chief")) return 2;
   if (r.includes("director") || r.includes("head")) return 3;
@@ -30,66 +38,70 @@ function renderByHierarchy(data) {
   const tree = document.getElementById('tree');
   tree.innerHTML = '';
 
+  // 按职位优先级排序
   data.sort((a, b) => getRank(a.Role) - getRank(b.Role));
 
+  // 按团队分组
   const grouped = {};
-  data.forEach(person => {
-    if (!grouped[person.Team]) grouped[person.Team] = [];
-    grouped[person.Team].push(person);
+  data.forEach(p => {
+    (grouped[p.Team] = grouped[p.Team] || []).push(p);
   });
 
-  for (const [teamName, members] of Object.entries(grouped)) {
+  // 渲染每个团队
+  Object.entries(grouped).forEach(([teamName, members]) => {
     const groupDiv = document.createElement('div');
     groupDiv.className = 'team-group';
 
+    // 找出 leader 和 other
     const leaders = members.filter(p => isLeader(p.Role));
-    const others = members.filter(p => !isLeader(p.Role));
-    const leader = leaders.length > 0 ? leaders[0] : others.shift();
+    const others  = members.filter(p => !isLeader(p.Role));
+    const leader = leaders.length ? leaders[0] : others.shift();
 
-    const leaderCard = document.createElement('div');
-    leaderCard.className = 'card team-lead';
-    leaderCard.setAttribute('data-rank', getRank(leader.Role));
-    leaderCard.innerHTML = `
+    // leader 卡片
+    const leadCard = document.createElement('div');
+    leadCard.className = 'card team-lead';
+    leadCard.setAttribute('data-rank', getRank(leader.Role));
+    leadCard.innerHTML = `
       ${leader.Name}<br><small>${leader.Role}</small>
     `;
-    leaderCard.onclick = () => toggleTeam(teamName);
-    groupDiv.appendChild(leaderCard);
+    leadCard.onclick = () => toggleTeam(teamName);
+    groupDiv.appendChild(leadCard);
 
-    const membersDiv = document.createElement('div');
-    membersDiv.className = 'team-members';
-    membersDiv.id = `team-${teamName}`;
-    membersDiv.style.display = 'none';
+    // 成员列表（隐藏/显示）
+    const memsDiv = document.createElement('div');
+    memsDiv.className = 'team-members';
+    memsDiv.id = `team-${teamName}`;
+    memsDiv.style.display = 'none';
 
-    [...leaders.slice(1), ...others].forEach(person => {
-      const memberCard = document.createElement('div');
-      memberCard.className = 'card';
-      memberCard.setAttribute('data-rank', getRank(person.Role));
-      memberCard.innerHTML = `
-        ${person.Name}<br><small>${person.Role}</small>
-        <span class="edit" onclick="openEdit(event, '${person.Name}', '${person.Role}', '${person.Status}', '${person.Team}')">✏️</span>
+    // 渲染其他成员
+    [...leaders.slice(1), ...others].forEach(p => {
+      const m = document.createElement('div');
+      m.className = 'card';
+      m.setAttribute('data-rank', getRank(p.Role));
+      m.innerHTML = `
+        ${p.Name}<br><small>${p.Role}</small>
+        <span class="edit" onclick="openEdit(event,'${p.Name}','${p.Role}','${p.Status}','${p.Team}')">✏️</span>
       `;
-      membersDiv.appendChild(memberCard);
+      memsDiv.appendChild(m);
     });
 
-    groupDiv.appendChild(membersDiv);
+    groupDiv.appendChild(memsDiv);
     tree.appendChild(groupDiv);
-  }
+  });
 }
 
 function toggleTeam(teamName) {
-  const teamDiv = document.getElementById(`team-${teamName}`);
-  if (teamDiv) {
-    teamDiv.style.display = teamDiv.style.display === 'none' ? 'flex' : 'none';
-  }
+  const d = document.getElementById(`team-${teamName}`);
+  d && (d.style.display = d.style.display === 'none' ? 'flex' : 'none');
 }
 
-function openEdit(event, name, role, status, team) {
-  event.stopPropagation();
-  currentEditing = name; // 记录原名字
-  document.getElementById('editName').value = name;
-  document.getElementById('editRole').value = role || '';
+function openEdit(e, name, role, status, team) {
+  e.stopPropagation();
+  currentEditing = name;
+  document.getElementById('editName').value   = name;
+  document.getElementById('editRole').value   = role   || '';
   document.getElementById('editStatus').value = status || 'Active';
-  document.getElementById('editTeam').value = team || 'Operations';
+  document.getElementById('editTeam').value   = team   || 'Operations';
   document.getElementById('editModal').style.display = 'flex';
 }
 
@@ -98,16 +110,14 @@ function closeEdit() {
 }
 
 function saveEdit() {
-  const newName = document.getElementById('editName').value;
-  const newRole = document.getElementById('editRole').value;
+  const newName   = document.getElementById('editName').value.trim();
+  const newRole   = document.getElementById('editRole').value.trim();
   const newStatus = document.getElementById('editStatus').value;
-  const newTeam = document.getElementById('editTeam').value;
+  const newTeam   = document.getElementById('editTeam').value;
 
-  fetch("https://script.google.com/macros/s/AKfycbxLHTcjQZ3ovUsl5VDo_E1zF7KfxwZiy_QDLRgPVQRrylBXkHLZ5etvV6W_lf3Sy0DGaA/exec", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json"
-    },
+  fetch(API_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
       oldName: currentEditing,
       name: newName,
@@ -116,14 +126,18 @@ function saveEdit() {
       team: newTeam
     })
   })
-  .then(response => response.text()) // ⬅️ 接收文本结果（"Updated" 或 "Added"）
-  .then(text => {
-    alert(`响应结果：${text}`);
+  .then(res => {
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    return res.json();
+  })
+  .then(json => {
+    alert(`操作成功：${json.action}`);
     closeEdit();
-    location.reload();
+    init();  // 重新拉最新数据并渲染
   })
   .catch(err => {
-    alert("保存失败：" + err);
+    console.error("保存失败：", err);
+    alert("保存失败，请检查控制台错误");
   });
 }
 
