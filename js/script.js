@@ -1,7 +1,6 @@
 window.addEventListener('DOMContentLoaded', init);
 
 const API_URL = 'https://script.google.com/macros/s/AKfycbxLHTcjQZ3ovUsl5VDo_E1zF7KfxwZiy_QDLRgPVQRrylBXkHLZ5etvV6W_lf3Sy0DGaA/exec';
-
 let currentEditing = ''; // 记录旧名字
 
 function init() {
@@ -10,9 +9,7 @@ function init() {
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       return res.json();
     })
-    .then(data => {
-      renderByHierarchy(data);
-    })
+    .then(data => renderByHierarchy(data))
     .catch(err => {
       console.error("加载数据失败：", err);
       alert("加载数据失败，请检查网络或控制台");
@@ -39,26 +36,21 @@ function renderByHierarchy(data) {
   const tree = document.getElementById('tree');
   tree.innerHTML = '';
 
-  // 按职位优先级排序
   data.sort((a, b) => getRank(a.Role) - getRank(b.Role));
 
-  // 按团队分组
   const grouped = {};
   data.forEach(p => {
     (grouped[p.Team] = grouped[p.Team] || []).push(p);
   });
 
-  // 渲染每个团队
   Object.entries(grouped).forEach(([teamName, members]) => {
     const groupDiv = document.createElement('div');
     groupDiv.className = 'team-group';
 
-    // 找出 leader 和 other
     const leaders = members.filter(p => isLeader(p.Role));
     const others  = members.filter(p => !isLeader(p.Role));
-    const leader = leaders.length ? leaders[0] : others.shift();
+    const leader  = leaders.length ? leaders[0] : others.shift();
 
-    // leader 卡片
     const leadCard = document.createElement('div');
     leadCard.className = 'card team-lead';
     leadCard.setAttribute('data-rank', getRank(leader.Role));
@@ -68,13 +60,11 @@ function renderByHierarchy(data) {
     leadCard.onclick = () => toggleTeam(teamName);
     groupDiv.appendChild(leadCard);
 
-    // 成员列表（隐藏/显示）
     const memsDiv = document.createElement('div');
     memsDiv.className = 'team-members';
     memsDiv.id = `team-${teamName}`;
     memsDiv.style.display = 'none';
 
-    // 渲染其他成员
     [...leaders.slice(1), ...others].forEach(p => {
       const m = document.createElement('div');
       m.className = 'card';
@@ -93,7 +83,7 @@ function renderByHierarchy(data) {
 
 function toggleTeam(teamName) {
   const d = document.getElementById(`team-${teamName}`);
-  d && (d.style.display = d.style.display === 'none' ? 'flex' : 'none');
+  if (d) d.style.display = d.style.display === 'none' ? 'flex' : 'none';
 }
 
 function openEdit(e, name, role, status, team) {
@@ -116,15 +106,15 @@ function saveEdit() {
   const newStatus = document.getElementById('editStatus').value;
   const newTeam   = document.getElementById('editTeam').value;
 
+  // 用 URLSearchParams 发起 simple POST，不触发 CORS 预检
   fetch(API_URL, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
+    body: new URLSearchParams({
       oldName: currentEditing,
-      name: newName,
-      role: newRole,
-      status: newStatus,
-      team: newTeam
+      name:    newName,
+      role:    newRole,
+      status:  newStatus,
+      team:    newTeam
     })
   })
   .then(res => {
@@ -134,13 +124,14 @@ function saveEdit() {
   .then(json => {
     alert(`操作成功：${json.action}`);
     closeEdit();
-    init();  // 重新拉最新数据并渲染
+    init();  // 重新拉数据并渲染
   })
   .catch(err => {
     console.error("保存失败：", err);
     alert("保存失败，请检查控制台错误");
   });
 }
+
 
 
 
