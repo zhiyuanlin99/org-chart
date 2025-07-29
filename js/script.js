@@ -1,18 +1,18 @@
-// 当页面加载完毕后自动跑 init
+// 页面加载完毕后跑 init
 window.addEventListener('DOMContentLoaded', init);
 
-// ❶ 用刚才在「Publish to the web」里拿到的 CSV 链接
+// ❶ 从「Publish to the web」拿到的 CSV 链接，用于 GET 渲染
 const CSV_URL = 
   'https://docs.google.com/spreadsheets/d/e/2PACX-1vR4jvmV163o9sMRxS6m7LW2SIiv9SLSnAUB5zpdK4Bc-HS_kMlFfuo9oJN9HgOyOnm7X-wSA5urduaJ/pub?gid=0&single=true&output=csv';
 
-// ❷ 用 Apps Script 部署出来的 exec URL，只用于 POST 更新
+// ❷ Apps Script Web App exec URL，用于 POST 更新
 const API_URL = 
   'https://script.google.com/macros/s/AKfycbxOR4DB9BsaeUfufbyUhRUzU9rd1SAf7lYu_ESQWp-bb8kII-WJHRrQd5zaxxZnKSzEDA/exec';
 
-// 当前正在编辑的 “旧名字”
-let currentEditing = ''; 
+// 正在编辑的旧名字
+let currentEditing = '';
 
-// ─── 1. 拉取 CSV 并渲染 ──────────────────────────────────
+// ─── 1. 拉 CSV 并 start 三层渲染 ───────────────────────
 function init() {
   fetch(CSV_URL)
     .then(res => {
@@ -20,11 +20,10 @@ function init() {
       return res.text();
     })
     .then(csv => {
-      // 简单把 CSV 拆成数组
       const [headerLine, ...lines] = csv.trim().split('\n');
       const headers = headerLine.split(',');
 
-      // 每行转对象
+      // CSV → 对象数组
       const data = lines.map(line => {
         const cols = line.split(',');
         return headers.reduce((o, h, i) => {
@@ -33,96 +32,109 @@ function init() {
         }, {});
       });
 
-      renderByHierarchy(data);
+      renderThreeLevels(data);
     })
     .catch(err => {
-      console.error('加载数据失败：', err);
+      console.error('加载 CSV 失败：', err);
       alert('加载数据失败，请检查网络或控制台');
     });
 }
 
-// ─── 2. 渲染函数及辅助 ──────────────────────────────────
-function getRank(role) {
-  const r = (role||'').toLowerCase();
-  if (r.includes('founder') || r.includes('ceo')) return 1;
-  if (r.includes('chief')) return 2;
-  if (r.includes('director')||r.includes('head')) return 3;
-  if (r.includes('manager')) return 4;
-  if (r.includes('lead')) return 5;
-  if (r.includes('developer')||r.includes('analyst')||r.includes('designer')||r.includes('writer')) return 6;
-  if (r.includes('intern')||r.includes('assistant')) return 7;
+// ─── 2. Rank 辅助 ──────────────────────────────────────
+function getRank(role='') {
+  const r = role.toLowerCase();
+  if (r.includes('founder') || r.includes('ceo'))    return 1;
+  if (r.includes('chief'))                           return 2;
+  if (r.includes('director') || r.includes('head'))  return 3;
+  if (r.includes('manager'))                         return 4;
   return 99;
 }
 function isLeader(role) {
-  return getRank(role) <= 5;
+  return getRank(role) <= 4; // 把 Manager 也当作第二层
 }
 
-function renderByHierarchy(data) {
+// ─── 3. 三层渲染 ──────────────────────────────────────
+function renderThreeLevels(data) {
   const tree = document.getElementById('tree');
   tree.innerHTML = '';
 
-  // 按职位排序
-  data.sort((a, b) => getRank(a.Role) - getRank(b.Role));
-
-  // 按 Team 分组
-  const grouped = {};
-  data.forEach(p => {
-    (grouped[p.Team] = grouped[p.Team]||[]).push(p);
+  // 先按 Rank、再按 Name 排序
+  data.sort((a,b) => {
+    const dr = getRank(a.Role) - getRank(b.Role);
+    return dr || a.Name.localeCompare(b.Name);
   });
 
-  // 每个组渲染一个块
-  Object.entries(grouped).forEach(([teamName, members]) => {
-    const groupDiv = document.createElement('div');
-    groupDiv.className = 'team-group';
+  // 找到 Founder（Rank=1）
+  const founder = data.find(p => getRank(p.Role) === 1);
+  if (!founder) {
+    tree.textContent = '⚠️ 请保证有一位 Founder/CEO';
+    return;
+  }
 
-    // 取这组的 leader 和 others
-    const leaders = members.filter(p => isLeader(p.Role));
-    const others  = members.filter(p => !isLeader(p.Role));
-    const leader  = leaders.length ? leaders[0] : others.shift();
+  // 一层：Founder 卡片
+  const fCard = document.createElement('div');
+  fCard.className = 'card team-lead';
+  fCard.innerHTML = `
+    ${founder.Name}<br><small>${founder.Role}</small>
+  `;
+  tree.appendChild(fCard);
 
-    // 领队卡片
-    const leadCard = document.createElement('div');
-    leadCard.className = 'card team-lead';
-    leadCard.setAttribute('data-rank', getRank(leader.Role));
-    leadCard.innerHTML = `
-      ${leader.Name}<br><small>${leader.Role}</small>
+  // 二层容器：所有 管理层（Rank 2–4）
+  const mgrContainer = document.createElement('div');
+  mgrContainer.className = 'team-members';
+  mgrContainer.style.display = 'none';
+  fCard.onclick = () => {
+    mgrContainer.style.display =
+      mgrContainer.style.display === 'none' ? 'flex' : 'none';
+  };
+
+  const managers = data.filter(p => getRank(p.Role) >= 2 && getRank(p.Role) <= 4);
+  managers.forEach(m => {
+    const mCard = document.createElement('div');
+    mCard.className = 'card';
+    mCard.innerHTML = `
+      ${m.Name}<br><small>${m.Role}</small>
+      <span class="edit"
+            onclick="openEdit(event,'${m.Name}','${m.Role}','${m.Status}','${m.Team}')">
+        ✏️
+      </span>
     `;
-    leadCard.onclick = () => toggleTeam(teamName);
-    groupDiv.appendChild(leadCard);
+    mgrContainer.appendChild(mCard);
 
-    // 隐藏成员区
-    const memsDiv = document.createElement('div');
-    memsDiv.className = 'team-members';
-    memsDiv.id        = `team-${teamName}`;
-    memsDiv.style.display = 'none';
+    // 三层：该管理层下属
+    const rptContainer = document.createElement('div');
+    rptContainer.className = 'team-members';
+    rptContainer.style.display = 'none';
+    mCard.onclick = e => {
+      e.stopPropagation(); // 阻止 Founder 的展开
+      rptContainer.style.display =
+        rptContainer.style.display === 'none' ? 'flex' : 'none';
+    };
 
-    // 剩下的成员
-    [...leaders.slice(1), ...others].forEach(p => {
-      const m = document.createElement('div');
-      m.className = 'card';
-      m.setAttribute('data-rank', getRank(p.Role));
-      m.innerHTML = `
-        ${p.Name}<br><small>${p.Role}</small>
-        <span class="edit" 
-              onclick="openEdit(event,'${p.Name}','${p.Role}','${p.Status}','${p.Team}')">
+    // 找同 Team 且 Rank > m
+    const reports = data.filter(p =>
+      p.Team === m.Team && getRank(p.Role) > getRank(m.Role)
+    );
+    reports.forEach(r => {
+      const rCard = document.createElement('div');
+      rCard.className = 'card';
+      rCard.innerHTML = `
+        ${r.Name}<br><small>${r.Role}</small>
+        <span class="edit"
+              onclick="openEdit(event,'${r.Name}','${r.Role}','${r.Status}','${r.Team}')">
           ✏️
         </span>
       `;
-      memsDiv.appendChild(m);
+      rptContainer.appendChild(rCard);
     });
 
-    groupDiv.appendChild(memsDiv);
-    tree.appendChild(groupDiv);
+    mgrContainer.appendChild(rptContainer);
   });
+
+  tree.appendChild(mgrContainer);
 }
 
-function toggleTeam(teamName) {
-  const d = document.getElementById(`team-${teamName}`);
-  if (!d) return;
-  d.style.display = d.style.display === 'none' ? 'flex' : 'none';
-}
-
-// ─── 3. 编辑弹窗 / 保存 ──────────────────────────────────
+// ─── 4. 编辑弹窗 / 保存 ─────────────────────────────────
 function openEdit(e, name, role, status, team) {
   e.stopPropagation();
   currentEditing = name;
@@ -132,11 +144,9 @@ function openEdit(e, name, role, status, team) {
   document.getElementById('editTeam').value   = team   || 'Operations';
   document.getElementById('editModal').style.display = 'flex';
 }
-
 function closeEdit() {
   document.getElementById('editModal').style.display = 'none';
 }
-
 function saveEdit() {
   const newName   = document.getElementById('editName').value.trim();
   const newRole   = document.getElementById('editRole').value.trim();
@@ -153,17 +163,21 @@ function saveEdit() {
       team:    newTeam
     })
   })
-  .then(res => { if (!res.ok) throw new Error(`HTTP ${res.status}`); return res.json(); })
+  .then(res => {
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    return res.json();
+  })
   .then(json => {
     alert(`操作成功：${json.action}`);
     closeEdit();
-    init();  // 更新完再刷新一下
+    init(); // 重新拉 CSV 并渲染
   })
   .catch(err => {
     console.error('保存失败：', err);
-    alert('保存失败，请检查控制台错误');
+    alert('保存失败，请检查控制台');
   });
 }
+
 
 
 
