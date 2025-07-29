@@ -151,7 +151,6 @@ function saveEdit() {
   fetch(API_URL, {
     method: 'POST',
     headers: {
-      // 👇 一定要是这个类型，不能用 application/json
       'Content-Type': 'application/x-www-form-urlencoded'
     },
     body: new URLSearchParams({
@@ -169,13 +168,14 @@ function saveEdit() {
   .then(json => {
     alert(`操作成功：${json.action}`);
     closeEdit();
-    init(); // ✅ 重新渲染
+    init();
   })
   .catch(err => {
     console.error('保存失败：', err);
     alert('保存失败，请检查控制台');
   });
 }
+
 
 
 
