@@ -151,30 +151,32 @@ function saveEdit() {
   fetch(API_URL, {
     method: 'POST',
     headers: {
-      'Content-Type': 'application/json'
+      // 👇 一定要是这个类型，不能用 application/json
+      'Content-Type': 'application/x-www-form-urlencoded'
     },
-    body: JSON.stringify({
-      oldName: currentEditing,     // ✅ 用于准确更新行
+    body: new URLSearchParams({
+      oldName: currentEditing,
       name:    newName,
       role:    newRole,
       status:  newStatus,
       team:    newTeam
     })
   })
-    .then(res => {
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      return res.json();
-    })
-    .then(json => {
-      alert(`操作成功：${json.action}`);
-      closeEdit();
-      init(); // ✅ 重新渲染
-    })
-    .catch(err => {
-      console.error('保存失败：', err);
-      alert('保存失败，请检查控制台');
-    });
+  .then(res => {
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    return res.json();
+  })
+  .then(json => {
+    alert(`操作成功：${json.action}`);
+    closeEdit();
+    init(); // ✅ 重新渲染
+  })
+  .catch(err => {
+    console.error('保存失败：', err);
+    alert('保存失败，请检查控制台');
+  });
 }
+
 
 
 
