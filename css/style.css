@@ -1,3 +1,4 @@
+/* ─── 先保留你原来的通用样式 ────────────────────────── */
 body {
   font-family: Arial, sans-serif;
   background: #f7f7f7;
@@ -12,7 +13,6 @@ body {
   align-items: center;
 }
 
-/* ✅ 所有卡片基础样式 */
 .card {
   background-color: white;
   border: 1px solid #ccc;
@@ -31,7 +31,6 @@ body {
   margin-top: 4px;
 }
 
-/* ✅ 编辑按钮（右上角） */
 .edit {
   position: absolute;
   top: 8px;
@@ -40,7 +39,6 @@ body {
   font-size: 14px;
 }
 
-/* ✅ 弹窗样式 */
 .modal {
   display: none;
   position: fixed;
@@ -60,7 +58,6 @@ body {
   box-shadow: 0 0 10px rgba(0,0,0,0.3);
 }
 
-/* ✅ 组织结构中的每个 team 容器 */
 .team-group {
   margin-bottom: 40px;
   display: flex;
@@ -68,7 +65,6 @@ body {
   align-items: center;
 }
 
-/* ✅ 组长样式 */
 .team-lead {
   background-color: #d0eaff;
   font-weight: bold;
@@ -80,7 +76,6 @@ body {
   background-color: #a3d4ff;
 }
 
-/* ✅ 展开的组员卡片容器 */
 .team-members {
   display: flex;
   flex-wrap: wrap;
@@ -89,14 +84,51 @@ body {
   margin-top: 10px;
 }
 
-/* ✅ 不同职位等级的视觉层级标识 */
-.card[data-rank='1'] { border-left: 5px solid #1a73e8; }  /* Founder / CEO */
-.card[data-rank='2'] { border-left: 5px solid #34a853; }  /* Chief */
-.card[data-rank='3'] { border-left: 5px solid #fbbc05; }  /* Director / Head */
-.card[data-rank='4'] { border-left: 5px solid #ff6d01; }  /* Manager */
-.card[data-rank='5'] { border-left: 5px solid #db4437; }  /* Lead */
-.card[data-rank='6'] { border-left: 5px solid #888888; }  /* Staff */
-.card[data-rank='7'] { border-left: 5px solid #cccccc; }  /* Intern / Assistant */
+.card[data-rank='1'] { border-left: 5px solid #1a73e8; }
+.card[data-rank='2'] { border-left: 5px solid #34a853; }
+.card[data-rank='3'] { border-left: 5px solid #fbbc05; }
+.card[data-rank='4'] { border-left: 5px solid #ff6d01; }
+.card[data-rank='5'] { border-left: 5px solid #db4437; }
+.card[data-rank='6'] { border-left: 5px solid #888888; }
+.card[data-rank='7'] { border-left: 5px solid #cccccc; }
+
+/* ─── 新增：Founder 居中放最上 ──────────────────────── */
+.founder {
+  margin: 0 auto 24px;
+  /* 如果想加大一点突出 Founder */
+  font-size: 1.2em;
+}
+
+/* ─── 新增：管理层一行排列 ─────────────────────────── */
+.managers-row {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+/* ─── 新增：管理层卡片与下属一起的包裹层 ─────────── */
+.manager-wrapper {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+/* ─── 新增：下属行，默认隐藏，展开时横向排列 ───────── */
+.reports-row {
+  display: none;          /* 默认收起 */
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 8px;
+  justify-content: center;
+}
+
+/* 额外：当展开 .reports-row 时，显示为 flex */
+.manager-wrapper .reports-row[style*="display: flex"] {
+  /* 其实 inline style 已生效，这里可留空或自定义动画 */
+}
+
 
 
 

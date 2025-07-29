@@ -2,11 +2,11 @@
 window.addEventListener('DOMContentLoaded', init);
 
 // ❶ 从「Publish to the web」拿到的 CSV 链接，用于 GET 渲染
-const CSV_URL = 
+const CSV_URL =
   'https://docs.google.com/spreadsheets/d/e/2PACX-1vR4jvmV163o9sMRxS6m7LW2SIiv9SLSnAUB5zpdK4Bc-HS_kMlFfuo9oJN9HgOyOnm7X-wSA5urduaJ/pub?gid=0&single=true&output=csv';
 
 // ❷ Apps Script Web App exec URL，用于 POST 更新
-const API_URL = 
+const API_URL =
   'https://script.google.com/macros/s/AKfycbxOR4DB9BsaeUfufbyUhRUzU9rd1SAf7lYu_ESQWp-bb8kII-WJHRrQd5zaxxZnKSzEDA/exec';
 
 // 正在编辑的旧名字
@@ -41,16 +41,13 @@ function init() {
 }
 
 // ─── 2. Rank 辅助 ──────────────────────────────────────
-function getRank(role='') {
+function getRank(role = '') {
   const r = role.toLowerCase();
   if (r.includes('founder') || r.includes('ceo'))    return 1;
   if (r.includes('chief'))                           return 2;
   if (r.includes('director') || r.includes('head'))  return 3;
   if (r.includes('manager'))                         return 4;
   return 99;
-}
-function isLeader(role) {
-  return getRank(role) <= 4; // 把 Manager 也当作第二层
 }
 
 // ─── 3. 三层渲染 ──────────────────────────────────────
@@ -59,7 +56,7 @@ function renderThreeLevels(data) {
   tree.innerHTML = '';
 
   // 先按 Rank、再按 Name 排序
-  data.sort((a,b) => {
+  data.sort((a, b) => {
     const dr = getRank(a.Role) - getRank(b.Role);
     return dr || a.Name.localeCompare(b.Name);
   });
@@ -73,25 +70,21 @@ function renderThreeLevels(data) {
 
   // 一层：Founder 卡片
   const fCard = document.createElement('div');
-  fCard.className = 'card team-lead';
+  fCard.className = 'card founder';
   fCard.innerHTML = `
     ${founder.Name}<br><small>${founder.Role}</small>
   `;
   tree.appendChild(fCard);
 
-  // 二层容器：所有 管理层（Rank 2–4）
+  // 二层：管理层容器，永远可见
   const mgrContainer = document.createElement('div');
-  mgrContainer.className = 'team-members';
-  mgrContainer.style.display = 'none';
-  fCard.onclick = () => {
-    mgrContainer.style.display =
-      mgrContainer.style.display === 'none' ? 'flex' : 'none';
-  };
+  mgrContainer.className = 'managers-row';
 
   const managers = data.filter(p => getRank(p.Role) >= 2 && getRank(p.Role) <= 4);
   managers.forEach(m => {
+    // 管理层卡片
     const mCard = document.createElement('div');
-    mCard.className = 'card';
+    mCard.className = 'card manager';
     mCard.innerHTML = `
       ${m.Name}<br><small>${m.Role}</small>
       <span class="edit"
@@ -99,36 +92,42 @@ function renderThreeLevels(data) {
         ✏️
       </span>
     `;
-    mgrContainer.appendChild(mCard);
 
-    // 三层：该管理层下属
+    // 管理层下属容器
     const rptContainer = document.createElement('div');
-    rptContainer.className = 'team-members';
+    rptContainer.className = 'reports-row';
     rptContainer.style.display = 'none';
-    mCard.onclick = e => {
-      e.stopPropagation(); // 阻止 Founder 的展开
+
+    // 该 manager 的下属：同 Team 且 rank > 该 rank
+    data
+      .filter(p => p.Team === m.Team && getRank(p.Role) > getRank(m.Role))
+      .forEach(r => {
+        const rCard = document.createElement('div');
+        rCard.className = 'card report';
+        rCard.innerHTML = `
+          ${r.Name}<br><small>${r.Role}</small>
+          <span class="edit"
+                onclick="openEdit(event,'${r.Name}','${r.Role}','${r.Status}','${r.Team}')">
+            ✏️
+          </span>
+        `;
+        rptContainer.appendChild(rCard);
+      });
+
+    // 点击管理层卡片，切换下属展开/收起
+    mCard.addEventListener('click', e => {
+      e.stopPropagation();
       rptContainer.style.display =
         rptContainer.style.display === 'none' ? 'flex' : 'none';
-    };
-
-    // 找同 Team 且 Rank > m
-    const reports = data.filter(p =>
-      p.Team === m.Team && getRank(p.Role) > getRank(m.Role)
-    );
-    reports.forEach(r => {
-      const rCard = document.createElement('div');
-      rCard.className = 'card';
-      rCard.innerHTML = `
-        ${r.Name}<br><small>${r.Role}</small>
-        <span class="edit"
-              onclick="openEdit(event,'${r.Name}','${r.Role}','${r.Status}','${r.Team}')">
-          ✏️
-        </span>
-      `;
-      rptContainer.appendChild(rCard);
     });
 
-    mgrContainer.appendChild(rptContainer);
+    // 把卡片 + 下属一并包一层
+    const wrapper = document.createElement('div');
+    wrapper.className = 'manager-wrapper';
+    wrapper.appendChild(mCard);
+    wrapper.appendChild(rptContainer);
+
+    mgrContainer.appendChild(wrapper);
   });
 
   tree.appendChild(mgrContainer);
@@ -144,9 +143,11 @@ function openEdit(e, name, role, status, team) {
   document.getElementById('editTeam').value   = team   || 'Operations';
   document.getElementById('editModal').style.display = 'flex';
 }
+
 function closeEdit() {
   document.getElementById('editModal').style.display = 'none';
 }
+
 function saveEdit() {
   const newName   = document.getElementById('editName').value.trim();
   const newRole   = document.getElementById('editRole').value.trim();
@@ -163,19 +164,19 @@ function saveEdit() {
       team:    newTeam
     })
   })
-  .then(res => {
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    return res.json();
-  })
-  .then(json => {
-    alert(`操作成功：${json.action}`);
-    closeEdit();
-    init(); // 重新拉 CSV 并渲染
-  })
-  .catch(err => {
-    console.error('保存失败：', err);
-    alert('保存失败，请检查控制台');
-  });
+    .then(res => {
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      return res.json();
+    })
+    .then(json => {
+      alert(`操作成功：${json.action}`);
+      closeEdit();
+      init(); // 重新拉 CSV 并渲染
+    })
+    .catch(err => {
+      console.error('保存失败：', err);
+      alert('保存失败，请检查控制台');
+    });
 }
 
 
