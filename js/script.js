@@ -150,7 +150,10 @@ function saveEdit() {
 
   fetch(API_URL, {
     method: 'POST',
-    body: new URLSearchParams({
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({
       oldName: currentEditing,     // ✅ 用于准确更新行
       name:    newName,
       role:    newRole,
@@ -172,6 +175,7 @@ function saveEdit() {
       alert('保存失败，请检查控制台');
     });
 }
+
 
 
 
