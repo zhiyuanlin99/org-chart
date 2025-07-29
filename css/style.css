@@ -1,4 +1,4 @@
-/* 全局 & 弹窗样式（保持不变） */
+/* Global & Modal Styles (unchanged) */
 body {
   font-family: Arial, sans-serif;
   background: #f7f7f7;
@@ -24,7 +24,7 @@ body {
   box-shadow: 0 0 10px rgba(0,0,0,0.3);
 }
 
-/* 树状容器 */
+/* Tree container */
 .tree {
   display: flex;
   flex-direction: column;
@@ -32,7 +32,7 @@ body {
   gap: 20px;
 }
 
-/* 卡片通用 */
+/* Generic card style */
 .card {
   background-color: white;
   border: 1px solid #ccc;
@@ -53,7 +53,7 @@ body {
   background: #fafafa;
 }
 
-/* 编辑按钮 */
+/* Edit button */
 .edit {
   position: absolute;
   top: 6px;
@@ -62,7 +62,7 @@ body {
   cursor: pointer;
 }
 
-/* Founder 卡片 */
+/* Founder card */
 .card.founder {
   border-left: 5px solid #1a73e8;
   background: #d0eaff;
@@ -70,7 +70,7 @@ body {
   cursor: default;
 }
 
-/* managers-row：二层管理者一行 */
+/* Second-level managers row */
 .managers-row {
   display: flex;
   flex-wrap: wrap;
@@ -79,7 +79,7 @@ body {
   width: 100%;
 }
 
-/* manager-wrapper：管理者卡片 + 下属 列 */
+/* Manager + subordinates column */
 .manager-wrapper {
   display: flex;
   flex-direction: column;
@@ -87,17 +87,17 @@ body {
   gap: 8px;
 }
 
-/* 下属行（和 managers-row 一样的 flex 布局） */
+/* Subordinate rows (same layout as managers-row) */
 .reports-row,
 .managers-row {
-  /* 都复用同样的布局 */
+  /* Reuse same flex layout */
   display: flex;
   flex-wrap: wrap;
   justify-content: center;
   gap: 12px;
 }
 
-/* 不同层级的颜色标记（可选） */
+/* Optional: Color indicators for different ranks */
 .card[data-rank='1'] { border-left: 5px solid #1a73e8; }   /* Founder */
 .card[data-rank='2'] { border-left: 5px solid #34a853; }   /* Chief */
 .card[data-rank='3'] { border-left: 5px solid #fbbc05; }   /* Director */
@@ -105,6 +105,7 @@ body {
 .card[data-rank='5'] { border-left: 5px solid #db4437; }   /* Lead */
 .card[data-rank='6'] { border-left: 5px solid #888; }      /* Staff */
 .card[data-rank='7'] { border-left: 5px solid #ccc; }      /* Intern */
+
 
 
 

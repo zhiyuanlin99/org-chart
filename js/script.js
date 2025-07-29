@@ -1,18 +1,18 @@
-// 页面加载完毕后跑 init
+// Run init after page finishes loading
 window.addEventListener('DOMContentLoaded', init);
 
-// ✅ CSV 数据 URL
+// CSV data URL
 const CSV_URL =
   'https://docs.google.com/spreadsheets/d/e/2PACX-1vR4jvmV163o9sMRxS6m7LW2SIiv9SLSnAUB5zpdK4Bc-HS_kMlFfuo9oJN9HgOyOnm7X-wSA5urduaJ/pub?gid=0&single=true&output=csv';
 
-// ✅ Apps Script POST 接口
+// Apps Script POST API
 const API_URL =
   'https://script.google.com/macros/s/AKfycbxOR4DB9BsaeUfufbyUhRUzU9rd1SAf7lYu_ESQWp-bb8kII-WJHRrQd5zaxxZnKSzEDA/exec';
 
-// 当前正在编辑的成员旧名
+// Currently editing member's old name
 let currentEditing = '';
 
-// ─── 1. 加载数据并渲染 ───────────────────────
+// ─── 1. Load data and render ─────────────────────────────
 function init() {
   fetch(CSV_URL)
     .then(res => {
@@ -34,12 +34,12 @@ function init() {
       renderThreeLevels(data);
     })
     .catch(err => {
-      console.error('加载 CSV 失败：', err);
-      alert('加载数据失败，请检查网络或控制台');
+      console.error('Failed to load CSV:', err);
+      alert('Failed to load data. Please check your network or console.');
     });
 }
 
-// ─── 2. 计算职级 ──────────────────────────────
+// ─── 2. Determine rank level ─────────────────────────────
 function getRank(role = '') {
   const r = role.toLowerCase();
   if (r.includes('founder') || r.includes('ceo')) return 1;
@@ -49,29 +49,29 @@ function getRank(role = '') {
   return 99;
 }
 
-// ─── 3. 渲染组织结构 ────────────────────────
+// ─── 3. Render organizational structure ──────────────────
 function renderThreeLevels(data) {
   const tree = document.getElementById('tree');
   tree.innerHTML = '';
 
   data.sort((a, b) => {
-    const dr = getRank(a.Role) - getRank(b.Role);
-    return dr || a.Name.localeCompare(b.Name);
+    const rankDiff = getRank(a.Role) - getRank(b.Role);
+    return rankDiff || a.Name.localeCompare(b.Name);
   });
 
   const founder = data.find(p => getRank(p.Role) === 1);
   if (!founder) {
-    tree.textContent = '⚠️ 请保证有一位 Founder/CEO';
+    tree.textContent = 'Please ensure there is a Founder/CEO';
     return;
   }
 
-  const fCard = document.createElement('div');
-  fCard.className = 'card founder';
-  fCard.innerHTML = `${founder.Name}<br><small>${founder.Role}</small>`;
-  tree.appendChild(fCard);
+  const founderCard = document.createElement('div');
+  founderCard.className = 'card founder';
+  founderCard.innerHTML = `${founder.Name}<br><small>${founder.Role}</small>`;
+  tree.appendChild(founderCard);
 
-  const mgrContainer = document.createElement('div');
-  mgrContainer.className = 'managers-row';
+  const managerContainer = document.createElement('div');
+  managerContainer.className = 'managers-row';
 
   const managers = data.filter(p => {
     const r = getRank(p.Role);
@@ -89,14 +89,13 @@ function renderThreeLevels(data) {
       ${m.Name}<br><small>${m.Role}</small>
       <span class="edit"
             onclick="openEdit(event,'${m.Name}','${m.Role}','${m.Status}','${m.Team}')">
-        ✏️
       </span>
     `;
     wrapper.appendChild(mCard);
 
-    const rptContainer = document.createElement('div');
-    rptContainer.className = 'reports-row';
-    rptContainer.style.display = 'none';
+    const reportContainer = document.createElement('div');
+    reportContainer.className = 'reports-row';
+    reportContainer.style.display = 'none';
 
     data
       .filter(p => p.Team === m.Team && getRank(p.Role) > getRank(m.Role))
@@ -108,29 +107,28 @@ function renderThreeLevels(data) {
           ${r.Name}<br><small>${r.Role}</small>
           <span class="edit"
                 onclick="openEdit(event,'${r.Name}','${r.Role}','${r.Status}','${r.Team}')">
-            ✏️
           </span>
         `;
-        rptContainer.appendChild(rCard);
+        reportContainer.appendChild(rCard);
       });
 
     mCard.addEventListener('click', e => {
       e.stopPropagation();
-      rptContainer.style.display =
-        rptContainer.style.display === 'none' ? 'flex' : 'none';
+      reportContainer.style.display =
+        reportContainer.style.display === 'none' ? 'flex' : 'none';
     });
 
-    wrapper.appendChild(rptContainer);
-    mgrContainer.appendChild(wrapper);
+    wrapper.appendChild(reportContainer);
+    managerContainer.appendChild(wrapper);
   });
 
-  tree.appendChild(mgrContainer);
+  tree.appendChild(managerContainer);
 }
 
-// ─── 4. 编辑弹窗 & 保存 ──────────────────────
+// ─── 4. Edit modal & save ────────────────────────────────
 function openEdit(e, name, role, status, team) {
   e.stopPropagation();
-  currentEditing = name; // ✅ 保存旧名字
+  currentEditing = name; // Save old name
   document.getElementById('editName').value   = name;
   document.getElementById('editRole').value   = role   || '';
   document.getElementById('editStatus').value = status || 'Active';
@@ -166,15 +164,16 @@ function saveEdit() {
     return res.json();
   })
   .then(json => {
-    alert(`操作成功：${json.action}`);
+    alert(`Success: ${json.action}`);
     closeEdit();
     init();
   })
   .catch(err => {
-    console.error('保存失败：', err);
-    alert('保存失败，请检查控制台');
+    console.error('Save failed:', err);
+    alert('Save failed. Please check the console.');
   });
 }
+
 
 
 
