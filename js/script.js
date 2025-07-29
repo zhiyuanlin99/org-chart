@@ -50,7 +50,7 @@ function getRank(role = '') {
   return 99;
 }
 
-// ─── 3. 三层渲染 ──────────────────────────────────────
+// ─── 3. 三层渲染（改动版） ─────────────────────────────
 function renderThreeLevels(data) {
   const tree = document.getElementById('tree');
   tree.innerHTML = '';
@@ -68,7 +68,7 @@ function renderThreeLevels(data) {
     return;
   }
 
-  // 一层：Founder 卡片
+  // —— 一层：Founder 卡片 ——  
   const fCard = document.createElement('div');
   fCard.className = 'card founder';
   fCard.innerHTML = `
@@ -76,13 +76,17 @@ function renderThreeLevels(data) {
   `;
   tree.appendChild(fCard);
 
-  // 二层：管理层容器，永远可见
+  // —— 二层：管理层一行 ——  
   const mgrContainer = document.createElement('div');
   mgrContainer.className = 'managers-row';
 
   const managers = data.filter(p => getRank(p.Role) >= 2 && getRank(p.Role) <= 4);
   managers.forEach(m => {
-    // 管理层卡片
+    // 包一个 wrapper，把管理者卡片和他下属放一起
+    const wrapper = document.createElement('div');
+    wrapper.className = 'manager-wrapper';
+
+    // 管理者卡片
     const mCard = document.createElement('div');
     mCard.className = 'card manager';
     mCard.innerHTML = `
@@ -92,13 +96,14 @@ function renderThreeLevels(data) {
         ✏️
       </span>
     `;
+    wrapper.appendChild(mCard);
 
-    // 管理层下属容器
+    // 下属容器（初始隐藏）
     const rptContainer = document.createElement('div');
     rptContainer.className = 'reports-row';
     rptContainer.style.display = 'none';
 
-    // 该 manager 的下属：同 Team 且 rank > 该 rank
+    // 填充这位管理者的直属下属
     data
       .filter(p => p.Team === m.Team && getRank(p.Role) > getRank(m.Role))
       .forEach(r => {
@@ -114,19 +119,14 @@ function renderThreeLevels(data) {
         rptContainer.appendChild(rCard);
       });
 
-    // 点击管理层卡片，切换下属展开/收起
+    // 点击管理者卡片，只切换他自己的下属显示不影响其他
     mCard.addEventListener('click', e => {
       e.stopPropagation();
       rptContainer.style.display =
         rptContainer.style.display === 'none' ? 'flex' : 'none';
     });
 
-    // 把卡片 + 下属一并包一层
-    const wrapper = document.createElement('div');
-    wrapper.className = 'manager-wrapper';
-    wrapper.appendChild(mCard);
     wrapper.appendChild(rptContainer);
-
     mgrContainer.appendChild(wrapper);
   });
 

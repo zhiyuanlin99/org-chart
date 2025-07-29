@@ -92,14 +92,14 @@ body {
 .card[data-rank='6'] { border-left: 5px solid #888888; }
 .card[data-rank='7'] { border-left: 5px solid #cccccc; }
 
-/* ─── 新增：Founder 居中放最上 ──────────────────────── */
+/* Founder 卡片居中、加大一点 */
 .founder {
-  margin: 0 auto 24px;
-  /* 如果想加大一点突出 Founder */
+  margin-bottom: 24px;
   font-size: 1.2em;
+  border-left: 5px solid #1a73e8; /* 保留你的 rank=1 配色 */
 }
 
-/* ─── 新增：管理层一行排列 ─────────────────────────── */
+/* 管理层行：一行平铺 */
 .managers-row {
   display: flex;
   flex-wrap: wrap;
@@ -108,25 +108,20 @@ body {
   margin-bottom: 24px;
 }
 
-/* ─── 新增：管理层卡片与下属一起的包裹层 ─────────── */
+/* 包裹管理者卡片 & 该管理者的下属 */
 .manager-wrapper {
   display: flex;
   flex-direction: column;
   align-items: center;
 }
 
-/* ─── 新增：下属行，默认隐藏，展开时横向排列 ───────── */
+/* 下属行：一开始隐藏，点击管理者展开 */
 .reports-row {
-  display: none;          /* 默认收起 */
+  display: none;
   flex-wrap: wrap;
   gap: 12px;
-  margin-top: 8px;
   justify-content: center;
-}
-
-/* 额外：当展开 .reports-row 时，显示为 flex */
-.manager-wrapper .reports-row[style*="display: flex"] {
-  /* 其实 inline style 已生效，这里可留空或自定义动画 */
+  margin-top: 8px;
 }
 
 
