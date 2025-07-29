@@ -31,13 +31,16 @@ function init() {
         }, {});
       });
 
-      renderThreeLevels(data);
+      // Only render members whose state is Active
+      const filteredData = data.filter(p => p.Status === 'Active');
+      renderThreeLevels(filteredData);
     })
     .catch(err => {
-      console.error('Failed to load CSV:', err);
-      alert('Failed to load data. Please check your network or console.');
+      console.error('加载 CSV 失败：', err);
+      alert('加载数据失败，请检查网络或控制台');
     });
 }
+
 
 // ─── 2. Determine rank level ─────────────────────────────
 function getRank(role = '') {
